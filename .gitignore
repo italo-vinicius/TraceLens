@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.jsonl
+!examples/*.jsonl
+!tests/fixtures/*.jsonl
+*.html
+!src/tracelens/reporting/templates/*.html
