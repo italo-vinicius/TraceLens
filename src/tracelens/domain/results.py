@@ -102,6 +102,7 @@ class InvalidLineSummary(BaseModel):
 class AnalysisResult(BaseModel):
     """Complete serializable output of the streaming analysis phase."""
 
+    schema_version: Literal["1.0"] = "1.0"
     metadata: AnalysisMetadata
     overview: MetricsSummary
     status_distribution: dict[int, int]

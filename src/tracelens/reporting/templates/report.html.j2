@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TraceLens report</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, system-ui, sans-serif; color: #172033; background: #f5f7fb; }
+    body { margin: 0; } main { max-width: 1100px; margin: auto; padding: 2rem 1rem 4rem; }
+    h1 { margin-bottom: .25rem; } h2 { margin-top: 2.5rem; } .muted { color: #61708a; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 1rem; }
+    .card, section { background: #fff; border: 1px solid #e2e8f3; border-radius: .7rem; padding: 1rem; box-shadow: 0 2px 5px #1720330a; }
+    .card strong { display: block; font-size: 1.5rem; margin-top: .35rem; } section { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; } th, td { padding: .65rem; text-align: left; border-bottom: 1px solid #e8edf5; }
+    th { color: #61708a; font-size: .8rem; text-transform: uppercase; } .chart { min-width: 680px; }
+    .legend span { margin-right: 1rem; } .requests { color: #2563eb; } .errors { color: #dc2626; } .p95 { color: #9333ea; }
+    .anomaly { border-left: 4px solid #f59e0b; padding-left: .8rem; margin: .8rem 0; }
+    @media (max-width: 600px) { main { padding: 1rem .75rem; } }
+  </style>
+</head>
+<body><main>
+  <h1>TraceLens report</h1>
+  <p class="muted">Schema {{ result.schema_version }} · {{ result.metadata.source }} · generated {{ result.metadata.finished_at.isoformat() }}</p>
+  <div class="cards">
+    <div class="card">Requests<strong>{{ result.overview.request_count }}</strong></div>
+    <div class="card">Error rate<strong>{{ "%.2f%%"|format(result.overview.error_rate * 100) }}</strong></div>
+    <div class="card">Average latency<strong>{{ "%.1f"|format(result.overview.average_duration_ms or 0) }} ms</strong></div>
+    <div class="card">p95 latency<strong>{{ result.overview.p95_ms or "—" }} ms</strong></div>
+  </div>
+  <h2>Timeline</h2><section><div class="legend"><span class="requests">● Requests</span><span class="errors">● Errors</span><span class="p95">● p95 latency</span></div>
+    <svg class="chart" viewBox="0 0 900 220" role="img" aria-label="Timeline metrics"><line x1="0" y1="180" x2="880" y2="180" stroke="#cbd5e1"/>
+      <polyline points="{{ chart.requests }}" fill="none" stroke="#2563eb" stroke-width="3"/><polyline points="{{ chart.errors }}" fill="none" stroke="#dc2626" stroke-width="3"/><polyline points="{{ chart.p95 }}" fill="none" stroke="#9333ea" stroke-width="3"/>
+    </svg>
+  </section>
+  <h2>Endpoints</h2><section><table><thead><tr><th>Endpoint</th><th>Requests</th><th>Errors</th><th>Average</th><th>p95</th></tr></thead><tbody>{% for item in result.top_requested_endpoints %}<tr><td>{{ item.endpoint.method }} {{ item.endpoint.path }}</td><td>{{ item.request_count }}</td><td>{{ item.error_count }}</td><td>{{ "%.1f"|format(item.average_duration_ms or 0) }} ms</td><td>{{ item.p95_ms or "—" }} ms</td></tr>{% endfor %}</tbody></table></section>
+  <h2>Anomalies</h2><section>{% if result.anomalies %}{% for anomaly in result.anomalies %}<div class="anomaly"><strong>{{ anomaly.severity }} · {{ anomaly.type }}</strong><br>{{ anomaly.explanation }}</div>{% endfor %}{% else %}<p class="muted">No anomalies detected by the rolling heuristic.</p>{% endif %}</section>
+  <h2>HTTP status distribution</h2><section><table><thead><tr><th>Status</th><th>Requests</th></tr></thead><tbody>{% for status, count in result.status_distribution.items() %}<tr><td>{{ status }}</td><td>{{ count }}</td></tr>{% endfor %}</tbody></table></section>
+  <h2>Input quality</h2><section><p>{{ result.metadata.valid_lines }} valid lines · {{ result.metadata.invalid_lines }} invalid lines · {{ "%.0f"|format(result.metadata.throughput_lines_per_second) }} lines/s</p>{% if result.invalid_line_summary %}<table><thead><tr><th>Reason</th><th>Count</th><th>Example lines</th></tr></thead><tbody>{% for reason, detail in result.invalid_line_summary.items() %}<tr><td>{{ reason }}</td><td>{{ detail.count }}</td><td>{{ detail.example_line_numbers|join(", ") }}</td></tr>{% endfor %}</tbody></table>{% endif %}</section>
+</main></body></html>
