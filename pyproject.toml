@@ -46,7 +46,7 @@ source = ["tracelens"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-extend-exclude = ["TraceLens_IMPLEMENTATION_PLAN.md"]
+extend-exclude = ["*.jsonl", "TraceLens_IMPLEMENTATION_PLAN.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
