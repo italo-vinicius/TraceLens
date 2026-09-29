@@ -10,6 +10,8 @@ TraceLens é uma ferramenta Python e dashboard Streamlit para analisar logs de a
 
 ## Dashboard
 
+![Prévia do dashboard TraceLens com métricas e linha do tempo](docs/dashboard-preview.svg)
+
 Execute a demonstração local com o log de exemplo incluído:
 
 ```bash
