@@ -93,5 +93,3 @@ O Streamlit Community Cloud pode usar `dashboard/app.py` como entrypoint. `requi
 ## Roadmap
 
 O MVP exclui intencionalmente banco de dados, autenticação, ingestão em tempo real e integrações com fornecedores. Próximos passos possíveis incluem entrada gzip, mapeamento configurável de campos, quantile sketches, agregação paralela, exportação OpenTelemetry e comparações com DuckDB.
-
-Consulte [TraceLens_IMPLEMENTATION_PLAN.md](TraceLens_IMPLEMENTATION_PLAN.md) para a especificação e o roteiro completos.
