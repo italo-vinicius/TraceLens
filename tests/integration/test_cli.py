@@ -50,3 +50,19 @@ def test_analyze_rejects_invalid_status_filter() -> None:
 
     assert result.exit_code == 2
     assert "HTTP code" in result.output
+
+
+def test_generate_and_benchmark_commands(tmp_path: Path) -> None:
+    logs = tmp_path / "generated.jsonl"
+    benchmark = tmp_path / "benchmark.json"
+
+    generated = runner.invoke(
+        app,
+        ["generate", "--output", str(logs), "--records", "100", "--seed", "7"],
+    )
+    measured = runner.invoke(app, ["benchmark", str(logs), "--output", str(benchmark)])
+
+    assert generated.exit_code == 0, generated.output
+    assert logs.exists()
+    assert measured.exit_code == 0, measured.output
+    assert orjson.loads(benchmark.read_bytes())["total_lines"] == 100

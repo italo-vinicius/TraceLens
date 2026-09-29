@@ -11,8 +11,10 @@ from rich.table import Table
 
 from tracelens.analysis.analyzer import Analyzer
 from tracelens.analysis.trace import find_request_trace
+from tracelens.benchmarks import run_benchmark, write_benchmark_result
 from tracelens.domain.models import AnalysisOptions
 from tracelens.domain.results import AnalysisResult
+from tracelens.generation.synthetic import SyntheticLogOptions, generate_logs
 from tracelens.parsing.jsonl import StrictParsingError, iter_jsonl
 from tracelens.reporting.html_report import write_html_report
 from tracelens.reporting.json_report import write_json_report
@@ -28,6 +30,69 @@ console = Console()
 def version() -> None:
     """Show the installed TraceLens version."""
     typer.echo("tracelens 0.1.0")
+
+
+@app.command()
+def generate(
+    output: Annotated[Path, typer.Option(help="Destination JSONL file.")],
+    records: Annotated[int, typer.Option(min=1, help="Number of lines to generate.")] = 100_000,
+    seed: Annotated[int, typer.Option(help="Random seed for reproducible output.")] = 42,
+    error_rate: Annotated[
+        float, typer.Option(min=0, max=1, help="Baseline 5xx error rate.")
+    ] = 0.01,
+    invalid_line_rate: Annotated[
+        float, typer.Option(min=0, max=1, help="Fraction of intentionally invalid lines.")
+    ] = 0.0,
+    with_incident: Annotated[bool, typer.Option(help="Inject a known payments incident.")] = False,
+) -> None:
+    """Generate reproducible synthetic JSONL logs."""
+    try:
+        summary = generate_logs(
+            output,
+            SyntheticLogOptions(
+                records=records,
+                seed=seed,
+                error_rate=error_rate,
+                invalid_line_rate=invalid_line_rate,
+                with_incident=with_incident,
+            ),
+        )
+    except (OSError, ValueError) as error:
+        console.print(f"[red]Could not generate logs: {error}[/]")
+        raise typer.Exit(code=2) from error
+    console.print(f"[green]Generated {summary.records_requested} lines:[/] {summary.output}")
+    if summary.incident_started_at is not None and summary.incident_finished_at is not None:
+        console.print(
+            "[yellow]Known incident window:[/] "
+            f"{summary.incident_started_at.isoformat()} to "
+            f"{summary.incident_finished_at.isoformat()}"
+        )
+
+
+@app.command()
+def benchmark(
+    path: Annotated[Path, typer.Argument(help="JSONL input file to measure.")],
+    output: Annotated[Path | None, typer.Option(help="Optional JSON measurement output.")] = None,
+) -> None:
+    """Measure streaming analysis throughput and approximate peak memory."""
+    if not path.is_file():
+        console.print(f"[red]Input file not found:[/] {path}")
+        raise typer.Exit(code=2)
+    try:
+        result = run_benchmark(path)
+        if output is not None:
+            write_benchmark_result(result, output)
+    except OSError as error:
+        console.print(f"[red]Could not run benchmark: {error}[/]")
+        raise typer.Exit(code=2) from error
+    table = Table(title="TraceLens benchmark")
+    table.add_column("Metric")
+    table.add_column("Value", justify="right")
+    table.add_row("Lines", str(result.total_lines))
+    table.add_row("Elapsed", f"{result.elapsed_seconds:.3f} s")
+    table.add_row("Throughput", f"{result.lines_per_second:.0f} lines/s")
+    table.add_row("Approx. peak RSS", f"{result.peak_memory_mb:.1f} MB")
+    console.print(table)
 
 
 def _parse_statuses(values: list[str]) -> frozenset[int] | None:
